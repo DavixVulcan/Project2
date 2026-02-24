@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package auth;
+
+service AuthService {
+  // Returns whether credentials are valid and (optionally) user info.
+  rpc CheckLogin (CheckLoginRequest) returns (CheckLoginResponse);
+}
+
+message CheckLoginRequest {
+  string username = 1;
+  string password = 2; // plaintext over TLS in production
+}
+
+message CheckLoginResponse {
+  bool ok = 1;
+  string user_id = 2;     // optional
+  string message = 3;     // optional error / info
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/css/site.css">
+    <title>ServerShop</title>
+</head>
+<body>
+    <div class="base">
+        <div class="header">
+            <h1>ServerShop</h1>
+            {% if session.get('user') %}
+                <div class="user-area">
+                    <span>Hi, {{ session['user'] }}</span>
+                    <form method="post" action="{{ url_for('logout') }}">
+                        <input type="submit" value="Logout">
+                    </form>
+                </div>
+            {% else %}
+                <form method="post" action="{{ url_for('login') }}">
+                    <label for="user">Username:</label>
+                    <input type="text" id="user" name="user">
+
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password">
+
+                    <input type="submit" value="Login">
+                </form>
+            {% endif %}
+        </div>
+        <div class="content"></div>
+        <div class="right"></div>
+    </div>
+</body>
+</html>
