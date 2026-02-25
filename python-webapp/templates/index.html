@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../static/css/site.css">
-    <title>ServerShop</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+    <title>ServerShop | Home</title>
 </head>
 <body>
     <div class="base">
@@ -29,8 +29,13 @@
                 </form>
             {% endif %}
         </div>
-        <div class="content"></div>
+        <div class="content">
+            <h2>Featured:</h2>
+            <div id="grid" class="grid" data-featured-only="true"></div>
+        </div>
         <div class="right"></div>
     </div>
+    
+    <script src="{{ url_for('static', filename='js/products.js') }}"></script>
 </body>
 </html>

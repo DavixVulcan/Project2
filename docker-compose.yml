@@ -3,16 +3,28 @@ services:
     build:
       context: .
       dockerfile: microservice-userauth/Dockerfile
+    # If you want host access for testing, keep ports.
+    # If you want it internal-only, REMOVE the ports section.
     ports:
       - "50051:50051"
-    # optional: persist auth DB if you use sqlite in a file
     volumes:
       - ./auth_data:/data
     environment:
       - DB_PATH=/data/users.db
-      # Optional seed user for first run:
       - SEED_USER=admin
       - SEED_PASS=admin123
+
+  microservice-productlisting:
+    build:
+      context: .
+      dockerfile: microservice-productlisting/Dockerfile
+    # internal only
+    expose:
+      - "50052"
+    volumes:
+      - ./productlisting_data:/data
+    environment:
+      - DB_PATH=/data/products.db
 
   python-webapp:
     build:
@@ -22,8 +34,7 @@ services:
       - "5000:5000"
     depends_on:
       - microservice-userauth
+      - microservice-productlisting
     environment:
       - AUTH_TARGET=microservice-userauth:50051
-
-volumes:
-  userauth_data:
+      - PRODUCTS_GRPC_TARGET=microservice-productlisting:50052

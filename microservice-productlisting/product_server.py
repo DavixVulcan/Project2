@@ -1,0 +1,120 @@
+import os
+import sqlite3
+from concurrent import futures
+
+import grpc
+
+import productlisting_pb2
+import productlisting_pb2_grpc
+
+DB_PATH = os.environ.get("DB_PATH", "/data/products.db")
+
+
+def get_conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            price REAL NOT NULL,
+            image_url TEXT NOT NULL,
+            type TEXT NOT NULL,
+            is_featured INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+    # Add type column if it doesn't exist (safe migration)
+    cur.execute("PRAGMA table_info(items)")
+    columns = [row["name"] for row in cur.fetchall()]
+
+    if "type" not in columns:
+        cur.execute("ALTER TABLE items ADD COLUMN type TEXT DEFAULT 'general'")
+        conn.commit()
+
+    # seed if empty (optional)
+    cur.execute("SELECT COUNT(*) AS c FROM items")
+    if cur.fetchone()["c"] == 0:
+        cur.executemany(
+            "INSERT INTO items (title, price, image_url, type, is_featured) VALUES (?, ?, ?, ?, ?)",
+            [
+                ("Starter VPS", 5.99, "https://example.com/images/vps-starter.png", "hosting", 1),
+                ("Pro VPS", 12.99, "https://example.com/images/vps-pro.png", "hosting", 1),
+                ("Dedicated Server", 99.99, "https://example.com/images/dedicated.png", "server", 0),
+                ("gpu", 99.99, "https://www.hellotech.com/blog/wp-content/uploads/2020/02/what-is-a-gpu-770x462.jpg", "gpu", 0),
+            ],
+        )
+        conn.commit()
+
+    conn.close()
+
+
+class ProductListingService(productlisting_pb2_grpc.ProductListingServiceServicer):
+    def ListItems(self, request, context):
+        where = []
+        params = []
+
+        if request.featured_only:
+            where.append("is_featured = ?")
+            params.append(1)
+        if request.type:
+            where.append("type = ?")
+            params.append(request.type)
+
+        where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+
+        order_sql = ""
+        if request.sort == "price_asc":
+            order_sql = "ORDER BY price ASC"
+        elif request.sort == "price_desc":
+            order_sql = "ORDER BY price DESC"
+
+        limit = request.limit if request.limit > 0 else 50
+        offset = request.offset if request.offset >= 0 else 0
+
+        sql = f"""
+            SELECT id, title, price, image_url, type, is_featured
+            FROM items
+            {where_sql}
+            {order_sql}
+            LIMIT ? OFFSET ?
+        """
+        params.extend([limit, offset])
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+        conn.close()
+
+        resp = productlisting_pb2.ListItemsResponse()
+        for r in rows:
+            resp.items.append(productlisting_pb2.Item(
+                id=int(r["id"]),
+                title=r["title"],
+                price=float(r["price"]),
+                image_url=r["image_url"],
+                type=r["type"],
+                is_featured=bool(r["is_featured"]),
+            ))
+        return resp
+
+
+def serve():
+    init_db()
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    productlisting_pb2_grpc.add_ProductListingServiceServicer_to_server(ProductListingService(), server)
+    server.add_insecure_port("0.0.0.0:50052")
+    server.start()
+    print("ProductListing gRPC server listening on 0.0.0.0:50052")
+    server.wait_for_termination()
+
+
+if __name__ == "__main__":
+    serve()

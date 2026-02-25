@@ -1,19 +1,17 @@
 FROM python:3.11-slim
 WORKDIR /app
-
 RUN pip install --no-cache-dir --upgrade pip
 
 COPY python-webapp/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your webapp code first
 COPY python-webapp /app
 
-# Copy proto and generate AFTER, so it overwrites anything copied in
 COPY proto /proto
-RUN python -m grpc_tools.protoc -I /proto \
-    --python_out=/app --grpc_python_out=/app \
-    /proto/auth.proto
+RUN python -m pip install --no-cache-dir grpcio-tools==1.62.2 protobuf==4.25.3 && \
+    python -m grpc_tools.protoc -I /proto \
+      --python_out=/app --grpc_python_out=/app \
+      /proto/auth.proto /proto/productlisting.proto
 
 EXPOSE 5000
 CMD ["python", "app.py"]
