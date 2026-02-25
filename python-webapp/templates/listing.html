@@ -32,41 +32,22 @@
       {% endif %}
     </div>
 
-    <div class="content">
-      <div class="toolbar">
-        <label>
-          Sort:
-          <select id="sort">
-            <option value="">None</option>
-            <option value="price_asc">Price: Low → High</option>
-            <option value="price_desc">Price: High → Low</option>
-          </select>
-        </label>
+    <div class="content" id="content">
+        <div id="listing"></div>
 
+        <div class="add-cart">
         <label>
-          Featured only:
-          <input id="featured" type="checkbox">
+            Qty:
+            <input id="qty" type="number" min="1" max="99" value="1">
         </label>
-        <label>
-          Type:
-          <select id="type">
-            <option value="">All</option>
-            <option value="hosting">Hosting</option>
-            <option value="server">Server</option>
-            <option value="gpu">GPU</option>
-          </select>
-        </label>
-
-        <button id="refresh" type="button">Refresh</button>
-        <span id="status"></span>
-      </div>
-
-      <div id="grid" class="grid"></div>
+        <button id="addToCart" type="button">Add to cart</button>
+        <span id="cartStatus"></span>
+        </div>
     </div>
 
     <div class="right"></div>
   </div>
 
-  <script src="{{ url_for('static', filename='js/products.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/listing.js') }}"></script>
 </body>
 </html>

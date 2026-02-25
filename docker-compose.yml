@@ -25,6 +25,17 @@ services:
       - ./productlisting_data:/data
     environment:
       - DB_PATH=/data/products.db
+    
+  microservice-usercarts:
+    build:
+      context: .
+      dockerfile: microservice-usercarts/Dockerfile
+    expose:
+      - "50053"
+    volumes:
+      - ./carts_data:/data
+    environment:
+      - DB_PATH=/data/carts.db
 
   python-webapp:
     build:
@@ -35,6 +46,8 @@ services:
     depends_on:
       - microservice-userauth
       - microservice-productlisting
+      - microservice-usercarts
     environment:
       - AUTH_TARGET=microservice-userauth:50051
       - PRODUCTS_GRPC_TARGET=microservice-productlisting:50052
+      - CARTS_GRPC_TARGET=microservice-usercarts:50053

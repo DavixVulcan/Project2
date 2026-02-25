@@ -8,11 +8,18 @@ import auth_pb2_grpc
 import productlisting_pb2
 import productlisting_pb2_grpc
 
+import usercarts_pb2
+import usercarts_pb2_grpc
+
 PRODUCTS_GRPC_TARGET = os.environ.get("PRODUCTS_GRPC_TARGET", "microservice-productlisting:50052")
 
 # (optional) create one channel and reuse it
 _products_channel = grpc.insecure_channel(PRODUCTS_GRPC_TARGET)
 _products_stub = productlisting_pb2_grpc.ProductListingServiceStub(_products_channel)
+
+CARTS_GRPC_TARGET = os.environ.get("CARTS_GRPC_TARGET", "microservice-usercarts:50053")
+_carts_channel = grpc.insecure_channel(CARTS_GRPC_TARGET)
+_carts_stub = usercarts_pb2_grpc.UserCartsServiceStub(_carts_channel)
 
 app = Flask(__name__)
 app.secret_key = "change-this"
@@ -35,6 +42,10 @@ def index():
 @app.get("/products")
 def products():
     return render_template("products.html")
+
+@app.get("/listing")
+def listing_page():
+    return render_template("listing.html")
 
 
 @app.post("/login")
@@ -84,6 +95,53 @@ def api_items_grpc():
         }
         for it in resp.items
     ])
+
+@app.get("/api/listing")
+def api_listing():
+    try:
+        item_id = int(request.args.get("id", ""))
+    except ValueError:
+        return jsonify({"error": "id must be an integer"}), 400
+
+    resp = _products_stub.GetItem(productlisting_pb2.GetItemRequest(id=item_id))
+
+    if not resp.found:
+        return jsonify({"found": False}), 404
+
+    it = resp.item
+    return jsonify({
+        "found": True,
+        "item": {
+            "id": it.id,
+            "title": it.title,
+            "price": it.price,
+            "image_url": it.image_url,
+            "isFeatured": it.is_featured,
+            "type": it.type,  # include if you have it
+        }
+    })
+
+@app.post("/api/cart/add")
+def api_cart_add():
+    # Require login
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "message": "Not logged in"}), 401
+
+    data = request.get_json(silent=True) or {}
+    try:
+        item_id = int(data.get("item_id", 0))
+        quantity = int(data.get("quantity", 1))
+    except ValueError:
+        return jsonify({"ok": False, "message": "Invalid payload"}), 400
+
+    resp = _carts_stub.AddToCart(usercarts_pb2.AddToCartRequest(
+        user_id=str(user_id),
+        item_id=item_id,
+        quantity=quantity,
+    ))
+
+    return jsonify({"ok": resp.ok, "message": resp.message}), (200 if resp.ok else 400)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)

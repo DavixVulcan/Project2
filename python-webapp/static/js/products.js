@@ -44,7 +44,7 @@ async function loadItems() {
 
     card.innerHTML = `
       <img src="${item.image_url}" alt="">
-      <div class="title">${item.title}</div>
+      <a class="title" href="/listing?id=${item.id}">${item.title}</a>
       <div class="price">$${item.price.toFixed(2)}</div>
     `;
 

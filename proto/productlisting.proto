@@ -3,6 +3,7 @@ package productlisting;
 
 service ProductListingService {
   rpc ListItems (ListItemsRequest) returns (ListItemsResponse);
+  rpc GetItem (GetItemRequest) returns (GetItemResponse);
 }
 
 message Item {
@@ -24,4 +25,13 @@ message ListItemsRequest {
 
 message ListItemsResponse {
   repeated Item items = 1;
+}
+
+message GetItemRequest {
+  int32 id = 1;
+}
+
+message GetItemResponse {
+  bool found = 1;
+  Item item = 2;
 }

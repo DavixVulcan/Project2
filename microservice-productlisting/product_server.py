@@ -104,6 +104,29 @@ class ProductListingService(productlisting_pb2_grpc.ProductListingServiceService
                 is_featured=bool(r["is_featured"]),
             ))
         return resp
+    def GetItem(self, request, context):
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, title, price, image_url, is_featured FROM items WHERE id = ?",
+            (request.id,)
+        )
+        r = cur.fetchone()
+        conn.close()
+
+        if not r:
+            return productlisting_pb2.GetItemResponse(found=False)
+
+        return productlisting_pb2.GetItemResponse(
+            found=True,
+            item=productlisting_pb2.Item(
+                id=int(r["id"]),
+                title=r["title"],
+                price=float(r["price"]),
+                image_url=r["image_url"],
+                is_featured=bool(r["is_featured"]),
+            )
+        )
 
 
 def serve():
