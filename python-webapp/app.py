@@ -7,7 +7,7 @@ import auth_pb2_grpc
 app = Flask(__name__)
 app.secret_key = "change-this"
 
-AUTH_TARGET = "127.0.0.1:50051"
+AUTH_TARGET = "microservice-userauth:50051"
 
 
 def check_login_via_grpc(username: str, password: str):
@@ -44,4 +44,4 @@ def logout():
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=5000, debug=False)

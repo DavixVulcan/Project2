@@ -1,32 +1,38 @@
+import os
 import sqlite3
 from concurrent import futures
 
 import grpc
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import auth_pb2
 import auth_pb2_grpc
 
+DB_PATH = os.environ.get("DB_PATH", "/data/users.db")
 
-DB_PATH = "users.db"
+
+def db_conn():
+    # check_same_thread=False is safe here because we open a new connection per call anyway
+    return sqlite3.connect(DB_PATH)
 
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = db_conn()
     cur = conn.cursor()
     cur.execute("""
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL
-      )
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        )
     """)
     conn.commit()
     conn.close()
 
 
 def get_user(username: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = db_conn()
     cur = conn.cursor()
     cur.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
     row = cur.fetchone()
@@ -34,10 +40,26 @@ def get_user(username: str):
     return row  # (id, username, password_hash) or None
 
 
+def create_user(username: str, password: str) -> bool:
+    conn = db_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO users(username, password_hash) VALUES(?, ?)",
+            (username, generate_password_hash(password))
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
 class AuthService(auth_pb2_grpc.AuthServiceServicer):
     def CheckLogin(self, request, context):
-        username = request.username.strip()
-        password = request.password
+        username = (request.username or "").strip()
+        password = request.password or ""
 
         if not username or not password:
             return auth_pb2.CheckLoginResponse(ok=False, message="Missing username or password")
@@ -53,14 +75,28 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
         return auth_pb2.CheckLoginResponse(ok=False, message="Invalid credentials")
 
 
-def serve(host="0.0.0.0", port=50051):
+def seed_admin_if_needed():
+    # Optional: seed a default user only if DB is empty and env vars provided
+    admin_user = os.environ.get("SEED_USER")
+    admin_pass = os.environ.get("SEED_PASS")
+    if not admin_user or not admin_pass:
+        return
+    if get_user(admin_user) is None:
+        created = create_user(admin_user, admin_pass)
+        if created:
+            print(f"Seeded user: {admin_user}")
+
+
+def serve():
     init_db()
+    seed_admin_if_needed()
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     auth_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
 
-    server.add_insecure_port(f"{host}:{port}")  # Use TLS creds in production
+    server.add_insecure_port("0.0.0.0:50051")
     server.start()
-    print(f"Auth gRPC server listening on {host}:{port}")
+    print(f"Auth gRPC server listening on 0.0.0.0:50051 (DB: {DB_PATH})")
     server.wait_for_termination()
 
 

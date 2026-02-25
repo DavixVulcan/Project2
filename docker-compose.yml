@@ -1,0 +1,29 @@
+services:
+  microservice-userauth:
+    build:
+      context: .
+      dockerfile: microservice-userauth/Dockerfile
+    ports:
+      - "50051:50051"
+    # optional: persist auth DB if you use sqlite in a file
+    volumes:
+      - ./auth_data:/data
+    environment:
+      - DB_PATH=/data/users.db
+      # Optional seed user for first run:
+      - SEED_USER=admin
+      - SEED_PASS=admin123
+
+  python-webapp:
+    build:
+      context: .
+      dockerfile: python-webapp/Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - microservice-userauth
+    environment:
+      - AUTH_TARGET=microservice-userauth:50051
+
+volumes:
+  userauth_data:
