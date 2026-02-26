@@ -11,7 +11,7 @@ COPY proto /proto
 RUN python -m pip install --no-cache-dir grpcio-tools==1.62.2 protobuf==4.25.3 && \
     python -m grpc_tools.protoc -I /proto \
       --python_out=/app --grpc_python_out=/app \
-      /proto/auth.proto /proto/productlisting.proto /proto/usercarts.proto /proto/orders.proto
+      /proto/auth.proto /proto/productlisting.proto /proto/usercarts.proto /proto/orders.proto /proto/admin.proto
 
 EXPOSE 5000
 CMD ["python", "app.py"]

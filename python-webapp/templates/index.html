@@ -1,55 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
-    <title>ServerShop | Home</title>
-</head>
-<body>
-    <div class="base">
-        <div class="header">
-            <h1>ServerShop</h1>
-      {% if session.get('user') %}
-        <div class="headerright">
-            <div class="navbar">
-                <a href="/"><h3>Home</h3></a>
-                <a href="/products"><h3>Products</h3></a>
-                <a href="/cart"><h3>Cart</h3></a>
-            </div>
-            <div class="user-area">
-            <span>Hi, {{ session['user'] }}</span>
-            <form method="post" action="{{ url_for('logout') }}">
-                <input type="submit" value="Logout">
-            </form>
-            </div>
-        </div>
-      {% else %}
-        <div class="headerright">
-            <div class="navbar">
-                <a href="/"><h3>Home</h3></a>
-                <a href="/products"><h3>Products</h3></a>
-            </div>
-            <form method="post" action="{{ url_for('login') }}">
-            <label for="user">Username:</label>
-            <input type="text" id="user" name="user">
+{% extends "base.html" %}
 
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password">
-
-            <input type="submit" value="Login">
-            </form>
-        </div>
-        
-      {% endif %}
-        </div>
-        <div class="content">
-            <h2>Featured:</h2>
-            <div id="grid" class="grid" data-featured-only="true"></div>
-        </div>
-        <div class="right"></div>
-    </div>
-    
-    <script src="{{ url_for('static', filename='js/products.js') }}"></script>
-</body>
-</html>
+{% block title %}ServerShop | Home{% endblock %}
+{% block content %} {% include "_featuredcontent.html" %} {% endblock %}
+{% block left %} {% include "_productlist.html" %} {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/products.js') }}"></script>{% endblock %}

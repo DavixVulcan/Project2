@@ -45,6 +45,22 @@ services:
       - "50054"
     environment:
       - CARTS_GRPC_TARGET=microservice-usercarts:50053
+  microservice-admin:
+    build:
+      context: .
+      dockerfile: microservice-admin/Dockerfile
+    expose:
+      - "50055"
+    volumes:
+      - ./productlisting_data:/data
+    environment:
+      - DB_PATH=/data/products.db
+  microservice-images:
+    image: nginx:alpine
+    expose:
+      - "80"
+    volumes:
+      - ./images:/usr/share/nginx/html:ro
 
   python-webapp:
     build:
@@ -62,3 +78,5 @@ services:
       - PRODUCTS_GRPC_TARGET=microservice-productlisting:50052
       - CARTS_GRPC_TARGET=microservice-usercarts:50053
       - ORDERS_GRPC_TARGET=microservice-orders:50054
+      - ADMIN_GRPC_TARGET=microservice-admin:50055
+      - IMAGES_BASE=http://microservice-images

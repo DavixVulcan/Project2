@@ -96,7 +96,45 @@ class UserCartsService(usercarts_pb2_grpc.UserCartsServiceServicer):
         conn.commit()
         conn.close()
         return usercarts_pb2.ClearCartResponse(ok=True, message="Cleared")
+    
+    def RemoveFromCart(self, request, context):
+        user_id = (request.user_id or "").strip()
+        item_id = request.item_id
+        remove_all = bool(request.remove_all)
+        qty = int(request.quantity)
 
+        if not user_id:
+            return usercarts_pb2.RemoveFromCartResponse(ok=False, message="Missing user_id", new_quantity=0)
+        if item_id <= 0:
+            return usercarts_pb2.RemoveFromCartResponse(ok=False, message="Invalid item_id", new_quantity=0)
+        if not remove_all and qty <= 0:
+            return usercarts_pb2.RemoveFromCartResponse(ok=False, message="Invalid quantity", new_quantity=0)
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT quantity FROM cart_items WHERE user_id=? AND item_id=?", (user_id, item_id))
+        row = cur.fetchone()
+
+        if not row:
+            conn.close()
+            return usercarts_pb2.RemoveFromCartResponse(ok=False, message="Item not in cart", new_quantity=0)
+
+        current = int(row["quantity"])
+
+        if remove_all or qty >= current:
+            cur.execute("DELETE FROM cart_items WHERE user_id=? AND item_id=?", (user_id, item_id))
+            conn.commit()
+            conn.close()
+            return usercarts_pb2.RemoveFromCartResponse(ok=True, message="Removed", new_quantity=0)
+
+        new_qty = current - qty
+        cur.execute(
+            "UPDATE cart_items SET quantity=? WHERE user_id=? AND item_id=?",
+            (new_qty, user_id, item_id),
+        )
+        conn.commit()
+        conn.close()
+        return usercarts_pb2.RemoveFromCartResponse(ok=True, message="Updated", new_quantity=new_qty)
 
 def serve():
     init_db()

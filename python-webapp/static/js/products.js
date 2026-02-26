@@ -12,6 +12,16 @@ async function loadItems() {
   grid.innerHTML = "Loading...";
 
   const params = new URLSearchParams();
+  const paramfilter = new URLSearchParams(window.location.search);
+  const filter = paramfilter.get("filter");
+
+  if (filter) {
+    params.set("type", filter);
+    if (typeEl && !typeEl.value) {
+      typeEl.value = filter;
+    }
+  }
+
 
   // 👇 check if page requests featured-only
   if (grid.dataset.featuredOnly === "true") {
@@ -27,7 +37,7 @@ async function loadItems() {
     params.set("sort", sortEl.value);
   }
 
-  const typeEl = document.getElementById("type");
+  // const typeEl = document.getElementById("type");
 
   if (typeEl && typeEl.value) {
     params.set("type", typeEl.value);
@@ -43,7 +53,7 @@ async function loadItems() {
     card.className = "card";
 
     card.innerHTML = `
-      <img src="${item.image_url}" alt="">
+      <a href="/listing?id=${item.id}"><img src="${item.image_url}" alt=""></a>
       <a class="title" href="/listing?id=${item.id}">${item.title}</a>
       <div class="price">$${item.price.toFixed(2)}</div>
     `;
