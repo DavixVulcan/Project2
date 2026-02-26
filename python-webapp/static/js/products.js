@@ -5,23 +5,26 @@ const featuredEl = document.getElementById("featured");
 const refreshBtn = document.getElementById("refresh");
 const statusEl = document.getElementById("status");
 const typeEl = document.getElementById("type");
-
+var init = true;
 async function loadItems() {
   if (!grid) return;
 
   grid.innerHTML = "Loading...";
 
   const params = new URLSearchParams();
-  const paramfilter = new URLSearchParams(window.location.search);
-  const filter = paramfilter.get("filter");
 
-  if (filter) {
-    params.set("type", filter);
-    if (typeEl && !typeEl.value) {
-      typeEl.value = filter;
+  if(init){
+    const paramfilter = new URLSearchParams(window.location.search);
+    const filter = paramfilter.get("filter");
+
+    if (filter) {
+      params.set("type", filter);
+      if (typeEl && !typeEl.value) {
+        typeEl.value = filter;
+      }
     }
+    init = false;
   }
-
 
   // 👇 check if page requests featured-only
   if (grid.dataset.featuredOnly === "true") {

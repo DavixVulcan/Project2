@@ -117,6 +117,29 @@ def logout():
     session.clear()
     return redirect(url_for("index"))
 
+@app.get("/register")
+def register_page():
+    return render_template("register.html")
+
+@app.post("/register")
+def register_post():
+    username = request.form.get("user", "")
+    password = request.form.get("password", "")
+
+    # call auth microservice
+    with grpc.insecure_channel(AUTH_TARGET) as channel:
+        stub = auth_pb2_grpc.AuthServiceStub(channel)
+        resp = stub.Register(auth_pb2.RegisterRequest(username=username, password=password))
+
+    if resp.ok:
+        # log them in immediately (optional)
+        session["user"] = username
+        session["user_id"] = resp.user_id
+        return redirect(url_for("index"))
+
+    flash(resp.message or "Registration failed")
+    return redirect(url_for("register_page"))
+
 @app.get("/api/items")
 def api_items_grpc():
     sort = request.args.get("sort", "")

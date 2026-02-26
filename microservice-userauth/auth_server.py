@@ -40,18 +40,19 @@ def get_user(username: str):
     return row  # (id, username, password_hash) or None
 
 
-def create_user(username: str, password: str) -> bool:
-    conn = db_conn()
+def create_user(username: str, password: str):
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     try:
         cur.execute(
             "INSERT INTO users(username, password_hash) VALUES(?, ?)",
-            (username, generate_password_hash(password))
+            (username, generate_password_hash(password)),
         )
         conn.commit()
-        return True
+        user_id = cur.lastrowid
+        return True, str(user_id), "Registered"
     except sqlite3.IntegrityError:
-        return False
+        return False, "", "Username already exists"
     finally:
         conn.close()
 
@@ -73,6 +74,17 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
             return auth_pb2.CheckLoginResponse(ok=True, user_id=str(user_id), message="OK")
 
         return auth_pb2.CheckLoginResponse(ok=False, message="Invalid credentials")
+    def Register(self, request, context):
+        username = (request.username or "").strip()
+        password = request.password or ""
+
+        if len(username) < 3:
+            return auth_pb2.RegisterResponse(ok=False, message="Username too short")
+        if len(password) < 6:
+            return auth_pb2.RegisterResponse(ok=False, message="Password too short")
+
+        ok, user_id, msg = create_user(username, password)
+        return auth_pb2.RegisterResponse(ok=ok, message=msg, user_id=user_id)
 
 
 def seed_admin_if_needed():
