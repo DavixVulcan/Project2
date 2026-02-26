@@ -11,6 +11,9 @@ import productlisting_pb2_grpc
 import usercarts_pb2
 import usercarts_pb2_grpc
 
+import orders_pb2
+import orders_pb2_grpc
+
 PRODUCTS_GRPC_TARGET = os.environ.get("PRODUCTS_GRPC_TARGET", "microservice-productlisting:50052")
 
 # (optional) create one channel and reuse it
@@ -20,6 +23,10 @@ _products_stub = productlisting_pb2_grpc.ProductListingServiceStub(_products_cha
 CARTS_GRPC_TARGET = os.environ.get("CARTS_GRPC_TARGET", "microservice-usercarts:50053")
 _carts_channel = grpc.insecure_channel(CARTS_GRPC_TARGET)
 _carts_stub = usercarts_pb2_grpc.UserCartsServiceStub(_carts_channel)
+
+ORDERS_GRPC_TARGET = os.environ.get("ORDERS_GRPC_TARGET", "microservice-orders:50054")
+_orders_channel = grpc.insecure_channel(ORDERS_GRPC_TARGET)
+_orders_stub = orders_pb2_grpc.OrdersServiceStub(_orders_channel)
 
 app = Flask(__name__)
 app.secret_key = "change-this"
@@ -47,6 +54,9 @@ def products():
 def listing_page():
     return render_template("listing.html")
 
+@app.get("/cart")
+def cart_page():
+    return render_template("cart.html")
 
 @app.post("/login")
 def login():
@@ -141,6 +151,45 @@ def api_cart_add():
         quantity=quantity,
     ))
 
+    return jsonify({"ok": resp.ok, "message": resp.message}), (200 if resp.ok else 400)
+
+@app.get("/api/cart")
+def api_cart():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "message": "Not logged in"}), 401
+
+    cart = _carts_stub.GetCart(usercarts_pb2.GetCartRequest(user_id=str(user_id)))
+
+    items = []
+    total = 0.0
+
+    for ci in cart.items:
+        # product info
+        pr = _products_stub.GetItem(productlisting_pb2.GetItemRequest(id=ci.item_id))
+        if not pr.found:
+            continue
+        p = pr.item
+        line_total = float(p.price) * int(ci.quantity)
+        total += line_total
+        items.append({
+            "id": p.id,
+            "title": p.title,
+            "price": float(p.price),
+            "qty": int(ci.quantity),
+            "image_url": p.image_url,
+            "line_total": line_total,
+        })
+
+    return jsonify({"ok": True, "items": items, "total": total})
+
+@app.post("/api/order/place")
+def api_place_order():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "message": "Not logged in"}), 401
+
+    resp = _orders_stub.PlaceOrder(orders_pb2.PlaceOrderRequest(user_id=str(user_id)))
     return jsonify({"ok": resp.ok, "message": resp.message}), (200 if resp.ok else 400)
 
 if __name__ == "__main__":

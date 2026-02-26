@@ -13,26 +13,47 @@
       <a href="/"><h1>ServerShop</h1></a>
 
       {% if session.get('user') %}
-        <div class="user-area">
-          <span>Hi, {{ session['user'] }}</span>
-          <form method="post" action="{{ url_for('logout') }}">
-            <input type="submit" value="Logout">
-          </form>
+        <div class="headerright">
+            <div class="navbar">
+                <a href="/"><h3>Home</h3></a>
+                <a href="/products"><h3>Products</h3></a>
+                <a href="/cart"><h3>Cart</h3></a>
+            </div>
+            <div class="user-area">
+            <span>Hi, {{ session['user'] }}</span>
+            <form method="post" action="{{ url_for('logout') }}">
+                <input type="submit" value="Logout">
+            </form>
+            </div>
         </div>
       {% else %}
-        <form method="post" action="{{ url_for('login') }}">
-          <label for="user">Username:</label>
-          <input type="text" id="user" name="user">
+        <div class="headerright">
+            <div class="navbar">
+                <a href="/"><h3>Home</h3></a>
+                <a href="/products"><h3>Products</h3></a>
+            </div>
+            <form method="post" action="{{ url_for('login') }}">
+            <label for="user">Username:</label>
+            <input type="text" id="user" name="user">
 
-          <label for="password">Password:</label>
-          <input type="password" id="password" name="password">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password">
 
-          <input type="submit" value="Login">
-        </form>
+            <input type="submit" value="Login">
+            </form>
+        </div>
+        
       {% endif %}
     </div>
 
     <div class="content">
+      
+
+      <div id="grid" class="grid"></div>
+    </div>
+
+    <div class="right"></div>
+    <div class="left">
       <div class="toolbar">
         <label>
           Sort:
@@ -59,12 +80,7 @@
 
         <button id="refresh" type="button">Refresh</button>
         <span id="status"></span>
-      </div>
-
-      <div id="grid" class="grid"></div>
-    </div>
-
-    <div class="right"></div>
+      </div></div>
   </div>
 
   <script src="{{ url_for('static', filename='js/products.js') }}"></script>

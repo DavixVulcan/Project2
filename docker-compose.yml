@@ -37,6 +37,15 @@ services:
     environment:
       - DB_PATH=/data/carts.db
 
+  microservice-orders:
+    build:
+      context: .
+      dockerfile: microservice-orders/Dockerfile
+    expose:
+      - "50054"
+    environment:
+      - CARTS_GRPC_TARGET=microservice-usercarts:50053
+
   python-webapp:
     build:
       context: .
@@ -47,7 +56,9 @@ services:
       - microservice-userauth
       - microservice-productlisting
       - microservice-usercarts
+      - microservice-orders
     environment:
       - AUTH_TARGET=microservice-userauth:50051
       - PRODUCTS_GRPC_TARGET=microservice-productlisting:50052
       - CARTS_GRPC_TARGET=microservice-usercarts:50053
+      - ORDERS_GRPC_TARGET=microservice-orders:50054

@@ -85,6 +85,17 @@ class UserCartsService(usercarts_pb2_grpc.UserCartsServiceServicer):
                 quantity=int(r["quantity"]),
             ))
         return resp
+    def ClearCart(self, request, context):
+        user_id = (request.user_id or "").strip()
+        if not user_id:
+            return usercarts_pb2.ClearCartResponse(ok=False, message="Missing user_id")
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM cart_items WHERE user_id=?", (user_id,))
+        conn.commit()
+        conn.close()
+        return usercarts_pb2.ClearCartResponse(ok=True, message="Cleared")
 
 
 def serve():

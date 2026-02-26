@@ -1,9 +1,18 @@
 syntax = "proto3";
 package usercarts;
-
 service UserCartsService {
   rpc AddToCart (AddToCartRequest) returns (AddToCartResponse);
   rpc GetCart (GetCartRequest) returns (GetCartResponse);
+  rpc ClearCart (ClearCartRequest) returns (ClearCartResponse);
+}
+
+message ClearCartRequest {
+  string user_id = 1;
+}
+
+message ClearCartResponse {
+  bool ok = 1;
+  string message = 2;
 }
 
 message AddToCartRequest {
